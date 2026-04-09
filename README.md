@@ -1,6 +1,8 @@
 # 🎯 七鱼客服自动化监控系统
 
-> 让客服管理从"人工盯屏"变成"自动告警"
+> 网易七鱼客服 API 自动化方案 | 排队监控 | 小时报自动推送 | 工单跟踪 | 飞书/企微推送
+
+**搜索关键词：** 七鱼客服、网易七鱼、客服自动化、排队监控、小时报推送、工单系统、飞书机器人、企业微信机器人、Python 脚本、客服管理、运营工具、游戏运营、OpenClaw
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
