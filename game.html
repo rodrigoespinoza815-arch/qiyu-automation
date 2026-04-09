@@ -16,28 +16,28 @@
         }
         canvas { display: block; }
         
-        .ui-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            pointer-events: none;
-            z-index: 10;
-            text-align: center;
-        }
-        
         .score-display {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: 48px;
             font-weight: bold;
             color: #333;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 60px;
+            z-index: 10;
+            pointer-events: none;
         }
         
         .best-score {
+            position: fixed;
+            top: 115px;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: 16px;
             color: #666;
-            margin-top: 5px;
+            z-index: 10;
+            pointer-events: none;
         }
         
         .start-screen {
@@ -59,17 +59,17 @@
         }
         
         .game-title {
-            font-size: 64px;
+            font-size: 56px;
             font-weight: bold;
             color: white;
             text-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .game-subtitle {
             font-size: 18px;
             color: rgba(255,255,255,0.8);
-            margin-bottom: 60px;
+            margin-bottom: 50px;
         }
         
         .start-btn {
@@ -82,13 +82,10 @@
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
         
-        .start-btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
+        .start-btn:active { transform: scale(0.95); }
         
         .instructions {
             margin-top: 40px;
@@ -104,7 +101,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             z-index: 100;
             opacity: 0;
             pointer-events: none;
@@ -119,64 +116,62 @@
         .game-over-card {
             background: white;
             border-radius: 20px;
-            padding: 40px;
+            padding: 35px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-width: 300px;
-            width: 90%;
+            max-width: 280px;
+            width: 85%;
         }
         
         .game-over-title {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .final-score {
-            font-size: 64px;
+            font-size: 56px;
             font-weight: bold;
             color: #764ba2;
-            margin: 20px 0;
+            margin: 15px 0;
         }
         
         .final-best {
-            font-size: 16px;
+            font-size: 14px;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         
         .restart-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 14px 50px;
-            font-size: 20px;
+            padding: 12px 45px;
+            font-size: 18px;
             font-weight: bold;
             border-radius: 25px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         
         .github-link {
-            margin-top: 30px;
-            color: #666;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.5);
             font-size: 12px;
+            z-index: 101;
         }
         
-        .github-link a {
-            color: #764ba2;
-            text-decoration: none;
-        }
+        .github-link a { color: rgba(255,255,255,0.7); text-decoration: none; }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     
-    <div class="ui-overlay">
-        <div class="score-display" id="scoreDisplay">0</div>
-        <div class="best-score" id="bestScore"></div>
-    </div>
+    <div class="score-display" id="scoreDisplay">0</div>
+    <div class="best-score" id="bestScore"></div>
     
     <div class="start-screen" id="startScreen">
         <div class="game-title">🎯 跳一跳</div>
@@ -205,17 +200,25 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        let width, height;
+        let W, H;
         let platforms = [];
-        let player = { x: 0, y: 0, width: 30, height: 30 };
+        let player = { x: 0, y: 0, w: 32, h: 32 };
         let score = 0;
         let bestScore = parseInt(localStorage.getItem('jumpBest') || '0');
         let isCharging = false;
+        let chargeStart = 0;
         let chargePower = 0;
         let isJumping = false;
+        let jumpAnim = { active: false, startX: 0, startY: 0, endX: 0, endY: 0, progress: 0, arcHeight: 0 };
         let gameStarted = false;
         let cameraX = 0;
-        let gameSpeed = 1;
+        let cameraY = 0;
+        let targetCameraX = 0;
+        let targetCameraY = 0;
+        
+        const GRAVITY = 0.6;
+        const JUMP_SPEED = 8;
+        const MAX_CHARGE = 2000;
         
         const colors = [
             { top: '#FF6B6B', side: '#E85D5D' },
@@ -224,31 +227,34 @@
             { top: '#96CEB4', side: '#7DB89A' },
             { top: '#FFEAA7', side: '#E8D595' },
             { top: '#DDA0DD', side: '#C88FC8' },
-            { top: '#98D8C8', side: '#7FC2B2' },
-            { top: '#F7DC6F', side: '#E0C556' }
+            { top: '#F8B500', side: '#E0A200' },
+            { top: '#6C5CE7', side: '#5A4BD1' }
         ];
         
         function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
         }
         
         function generatePlatform(index) {
-            const lastPlat = platforms.length > 0 ? platforms[platforms.length - 1] : { x: width * 0.3, y: 0 };
+            const lastPlat = platforms[platforms.length - 1];
+            const minDist = 70;
+            const maxDist = 160;
+            const distance = minDist + Math.random() * (maxDist - minDist);
+            const platW = 45 + Math.random() * 35;
+            const platH = 18 + Math.random() * 12;
             
-            const distance = 80 + Math.random() * 120 * gameSpeed;
-            const width_plat = 50 + Math.random() * 40;
-            const height_plat = 20 + Math.random() * 15;
-            const x = lastPlat.x + distance;
-            const baseY = height * 0.55;
-            const y = baseY + (Math.random() - 0.5) * 150;
+            let x = lastPlat.x + distance;
+            let y = lastPlat.y + (Math.random() - 0.5) * 100;
+            y = Math.max(H * 0.3, Math.min(H * 0.75, y));
             
             return {
                 x: x,
                 y: y,
-                width: width_plat,
-                height: height_plat,
-                color: colors[Math.floor(Math.random() * colors.length)]
+                w: platW,
+                h: platH,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                scored: false
             };
         }
         
@@ -256,210 +262,254 @@
             platforms = [];
             
             const firstPlat = {
-                x: width * 0.25,
-                y: height * 0.55,
-                width: 80,
-                height: 25,
-                color: colors[0]
+                x: W * 0.2,
+                y: H * 0.55,
+                w: 70,
+                h: 22,
+                color: colors[0],
+                scored: false
             };
             platforms.push(firstPlat);
             
-            player.x = firstPlat.x + firstPlat.width / 2 - player.width / 2;
-            player.y = firstPlat.y - player.height;
+            player.x = firstPlat.x + firstPlat.w / 2 - player.w / 2;
+            player.y = firstPlat.y - player.h;
             
             score = 0;
             cameraX = 0;
-            gameSpeed = 1;
+            cameraY = 0;
+            targetCameraX = 0;
+            targetCameraY = 0;
             isCharging = false;
             chargePower = 0;
             isJumping = false;
+            jumpAnim = { active: false };
             
             document.getElementById('scoreDisplay').textContent = '0';
-            document.getElementById('bestScore').textContent = bestScore > 0 ? `🏆 最高纪录：${bestScore}` : '';
+            document.getElementById('bestScore').textContent = bestScore > 0 ? `🏆 ${bestScore}` : '';
             
-            for (let i = 1; i < 10; i++) {
+            for (let i = 1; i < 8; i++) {
                 platforms.push(generatePlatform(i));
             }
         }
         
         function drawPlatform(plat) {
-            const x = plat.x - cameraX;
+            const sx = plat.x - cameraX;
+            const sy = plat.y - cameraY;
             
-            if (x + plat.width < -50 || x > width + 50) return;
+            if (sx + plat.w < -50 || sx > W + 50) return;
             
-            // 阴影
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
             ctx.beginPath();
-            ctx.ellipse(x + plat.width/2, plat.y + plat.height + 5, plat.width/2, 8, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx + plat.w/2, sy + plat.h + 4, plat.w * 0.45, 6, 0, 0, Math.PI * 2);
             ctx.fill();
             
-            // 平台主体
+            // Platform body
             ctx.fillStyle = plat.color.side;
-            ctx.fillRect(x, plat.y, plat.width, plat.height);
+            ctx.fillRect(sx, sy, plat.w, plat.h);
             
-            // 平台顶面
+            // Platform top
             ctx.fillStyle = plat.color.top;
-            ctx.fillRect(x, plat.y, plat.width, plat.height * 0.6);
+            ctx.fillRect(sx, sy, plat.w, plat.h * 0.55);
             
-            // 高光
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.fillRect(x, plat.y, plat.width, plat.height * 0.2);
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillRect(sx + 3, sy + 2, plat.w - 6, plat.h * 0.2);
         }
         
-        function drawPlayer() {
-            const x = player.x - cameraX;
+        function drawPlayer(sx, sy, compression) {
+            const w = player.w * (1 + compression * 0.15);
+            const h = player.h * (1 - compression * 0.35);
+            const dx = sx + player.w/2 - w/2;
+            const dy = sy + player.h - h;
             
-            // 阴影
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
             ctx.beginPath();
-            ctx.ellipse(x + player.width/2, player.y + player.height + 3, player.width/2, 5, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx + player.w/2, sy + player.h + 3, w/2, 4, 0, 0, Math.PI * 2);
             ctx.fill();
             
-            // 蓄力压缩效果
-            let scaleY = 1;
-            let scaleX = 1;
-            if (isCharging) {
-                const compression = chargePower / 100;
-                scaleY = 1 - compression * 0.4;
-                scaleX = 1 + compression * 0.2;
-            }
+            // Body
+            const grad = ctx.createRadialGradient(dx + w/2, dy + h*0.35, 0, dx + w/2, dy + h*0.35, w*0.6);
+            grad.addColorStop(0, '#FFB347');
+            grad.addColorStop(1, '#FF8C00');
+            ctx.fillStyle = grad;
             
-            const w = player.width * scaleX;
-            const h = player.height * scaleY;
-            const dx = x + player.width/2 - w/2;
-            const dy = player.y + player.height - h;
-            
-            // 身体
-            const gradient = ctx.createRadialGradient(dx + w/2, dy + h/3, 0, dx + w/2, dy + h/3, w);
-            gradient.addColorStop(0, '#FFB347');
-            gradient.addColorStop(1, '#FF8C00');
-            
-            ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.roundRect(dx, dy, w, h, w/3);
             ctx.fill();
             
-            // 眼睛
+            // Eyes
             ctx.fillStyle = 'white';
-            const eyeSize = w * 0.2;
+            const eyeR = w * 0.18;
             ctx.beginPath();
-            ctx.arc(dx + w * 0.35, dy + h * 0.35, eyeSize, 0, Math.PI * 2);
-            ctx.arc(dx + w * 0.65, dy + h * 0.35, eyeSize, 0, Math.PI * 2);
+            ctx.arc(dx + w*0.35, dy + h*0.35, eyeR, 0, Math.PI*2);
+            ctx.arc(dx + w*0.65, dy + h*0.35, eyeR, 0, Math.PI*2);
             ctx.fill();
             
             ctx.fillStyle = '#333';
             ctx.beginPath();
-            ctx.arc(dx + w * 0.35, dy + h * 0.35, eyeSize * 0.5, 0, Math.PI * 2);
-            ctx.arc(dx + w * 0.65, dy + h * 0.35, eyeSize * 0.5, 0, Math.PI * 2);
+            ctx.arc(dx + w*0.35, dy + h*0.35, eyeR*0.5, 0, Math.PI*2);
+            ctx.arc(dx + w*0.65, dy + h*0.35, eyeR*0.5, 0, Math.PI*2);
             ctx.fill();
-            
-            // 蓄力条
-            if (isCharging) {
-                const barWidth = 60;
-                const barHeight = 6;
-                const barX = width / 2 - barWidth / 2;
-                const barY = height - 80;
-                
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(barX, barY, barWidth, barHeight);
-                
-                const power = chargePower / 100;
-                const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
-                gradient.addColorStop(0, '#4ECDC4');
-                gradient.addColorStop(0.5, '#FFD93D');
-                gradient.addColorStop(1, '#FF6B6B');
-                
-                ctx.fillStyle = gradient;
-                ctx.fillRect(barX, barY, barWidth * power, barHeight);
-            }
         }
         
-        function drawBackground() {
-            // 云朵
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            const cloudOffset = cameraX * 0.2;
+        function drawChargeBar() {
+            if (!isCharging) return;
             
-            for (let i = 0; i < 5; i++) {
-                const cx = ((i * 300 - cloudOffset) % (width + 200)) - 100;
-                const cy = 50 + i * 30;
+            const power = Math.min(chargePower / MAX_CHARGE, 1);
+            const barW = 50;
+            const barH = 5;
+            const barX = W/2 - barW/2;
+            const barY = H - 60;
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.fillRect(barX, barY, barW, barH);
+            
+            const grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+            grad.addColorStop(0, '#4ECDC4');
+            grad.addColorStop(0.5, '#FFD93D');
+            grad.addColorStop(1, '#FF6B6B');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(barX, barY, barW * power, barH);
+        }
+        
+        function drawClouds() {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            const offset = cameraX * 0.15;
+            
+            for (let i = 0; i < 6; i++) {
+                const cx = ((i * 280 - offset * 0.5) % (W + 200)) - 80;
+                const cy = 40 + (i % 3) * 35;
+                const r = 25 + (i % 2) * 8;
                 
                 ctx.beginPath();
-                ctx.arc(cx, cy, 30, 0, Math.PI * 2);
-                ctx.arc(cx + 25, cy - 10, 25, 0, Math.PI * 2);
-                ctx.arc(cx + 50, cy, 30, 0, Math.PI * 2);
+                ctx.arc(cx, cy, r, 0, Math.PI*2);
+                ctx.arc(cx + r*0.8, cy - r*0.3, r*0.8, 0, Math.PI*2);
+                ctx.arc(cx + r*1.5, cy, r*0.9, 0, Math.PI*2);
                 ctx.fill();
             }
         }
         
         function update() {
-            if (!gameStarted || isJumping) return;
+            if (!gameStarted) return;
             
             if (isCharging) {
-                chargePower = Math.min(chargePower + 2, 100);
-            }
-        }
-        
-        function jump() {
-            if (isJumping || !isCharging) return;
-            
-            isJumping = true;
-            const power = chargePower / 100;
-            
-            const targetPlat = platforms.find(p => p.x > player.x && p.x < player.x + 300);
-            
-            if (!targetPlat) {
-                isJumping = false;
-                gameOver();
-                return;
+                chargePower = Math.min(Date.now() - chargeStart, MAX_CHARGE);
             }
             
-            const distance = power * 250 * gameSpeed;
-            const targetX = player.x + distance;
-            
-            // 找到最近的着陆平台
-            let landed = false;
-            for (let plat of platforms) {
-                if (Math.abs(targetX - (plat.x + plat.width / 2)) < plat.width / 2 + player.width / 2) {
-                    player.x = targetX;
-                    player.y = plat.y - player.height;
-                    landed = true;
+            if (jumpAnim.active) {
+                jumpAnim.progress += 0.035;
+                
+                if (jumpAnim.progress >= 1) {
+                    jumpAnim.progress = 1;
+                    jumpAnim.active = false;
                     
-                    score++;
-                    document.getElementById('scoreDisplay').textContent = score;
+                    // Check landing
+                    const landingX = jumpAnim.endX;
+                    const landingY = jumpAnim.endY;
+                    let landed = false;
                     
-                    if (score > bestScore) {
-                        bestScore = score;
-                        localStorage.setItem('jumpBest', bestScore);
+                    for (let plat of platforms) {
+                        if (landingX >= plat.x && landingX <= plat.x + plat.w &&
+                            landingY >= plat.y - 5 && landingY <= plat.y + 10) {
+                            player.x = landingX - player.w/2;
+                            player.y = plat.y - player.h;
+                            landed = true;
+                            
+                            if (!plat.scored) {
+                                plat.scored = true;
+                                score++;
+                                document.getElementById('scoreDisplay').textContent = score;
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    localStorage.setItem('jumpBest', bestScore);
+                                }
+                            }
+                            
+                            // Add new platform
+                            platforms.push(generatePlatform());
+                            while (platforms.length > 12) platforms.shift();
+                            break;
+                        }
                     }
                     
-                    // 难度递增
-                    gameSpeed = 1 + score * 0.02;
-                    
-                    // 生成新平台
-                    platforms.push(generatePlatform());
-                    
-                    // 移除屏幕外的平台
-                    while (platforms.length > 15) {
-                        platforms.shift();
+                    if (!landed) {
+                        // Fell off
+                        setTimeout(() => gameOver(), 300);
                     }
                     
-                    break;
+                    isJumping = false;
+                } else {
+                    // Parabolic arc
+                    const t = jumpAnim.progress;
+                    player.x = jumpAnim.startX + (jumpAnim.endX - jumpAnim.startX) * t;
+                    const arcY = jumpAnim.arcHeight * Math.sin(t * Math.PI);
+                    player.y = jumpAnim.startY + (jumpAnim.endY - jumpAnim.startY) * t - arcY;
                 }
             }
             
-            if (!landed) {
-                player.x = targetX;
-                player.y += 200;
-                setTimeout(() => gameOver(), 500);
+            // Smooth camera follow
+            targetCameraX = player.x - W * 0.3;
+            targetCameraY = Math.min(0, player.y - H * 0.5);
+            cameraX += (targetCameraX - cameraX) * 0.08;
+            cameraY += (targetCameraY - cameraY) * 0.08;
+        }
+        
+        function startJump() {
+            if (isJumping || !isCharging) return;
+            
+            const power = Math.min(chargePower / MAX_CHARGE, 1);
+            const jumpDist = power * 200 + 30;
+            
+            // Find target platform
+            let targetPlat = null;
+            let bestDist = Infinity;
+            
+            for (let plat of platforms) {
+                if (plat.x > player.x) {
+                    const dist = Math.abs((plat.x + plat.w/2) - (player.x + player.w/2 + jumpDist));
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        targetPlat = plat;
+                    }
+                }
+            }
+            
+            if (!targetPlat) {
+                // Jump into void
+                jumpAnim = {
+                    active: true,
+                    startX: player.x + player.w/2,
+                    startY: player.y,
+                    endX: player.x + player.w/2 + jumpDist,
+                    endY: player.y + 200,
+                    progress: 0,
+                    arcHeight: 80
+                };
+                isJumping = true;
+                isCharging = false;
+                chargePower = 0;
                 return;
             }
             
-            chargePower = 0;
-            isCharging = false;
+            const targetX = targetPlat.x + targetPlat.w / 2;
+            const targetY = targetPlat.y;
             
-            setTimeout(() => {
-                isJumping = false;
-            }, 100);
+            jumpAnim = {
+                active: true,
+                startX: player.x + player.w/2,
+                startY: player.y,
+                endX: targetX,
+                endY: targetY,
+                progress: 0,
+                arcHeight: 60 + Math.abs(targetX - (player.x + player.w/2)) * 0.3
+            };
+            
+            isJumping = true;
+            isCharging = false;
+            chargePower = 0;
         }
         
         function gameOver() {
@@ -470,18 +520,18 @@
         }
         
         function render() {
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, W, H);
             
-            // 相机跟随
-            if (gameStarted) {
-                const targetCameraX = player.x - width * 0.3;
-                cameraX += (targetCameraX - cameraX) * 0.1;
-            }
-            
-            drawBackground();
+            drawClouds();
             
             platforms.forEach(drawPlatform);
-            drawPlayer();
+            
+            const sx = player.x - cameraX;
+            const sy = player.y - cameraY;
+            const compression = isCharging ? Math.min(chargePower / MAX_CHARGE, 1) : 0;
+            drawPlayer(sx, sy, compression);
+            
+            drawChargeBar();
         }
         
         function gameLoop() {
@@ -504,34 +554,27 @@
             document.getElementById('gameOverScreen').classList.remove('show');
         }
         
-        // 事件监听
-        canvas.addEventListener('mousedown', (e) => {
+        // Input handlers
+        function onDown(e) {
+            if (e) e.preventDefault();
             if (gameStarted && !isJumping) {
                 isCharging = true;
+                chargeStart = Date.now();
                 chargePower = 0;
             }
-        });
+        }
         
-        canvas.addEventListener('mouseup', (e) => {
+        function onUp(e) {
+            if (e) e.preventDefault();
             if (gameStarted && isCharging) {
-                jump();
+                startJump();
             }
-        });
+        }
         
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameStarted && !isJumping) {
-                isCharging = true;
-                chargePower = 0;
-            }
-        }, { passive: false });
-        
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (gameStarted && isCharging) {
-                jump();
-            }
-        }, { passive: false });
+        canvas.addEventListener('mousedown', onDown);
+        canvas.addEventListener('mouseup', onUp);
+        canvas.addEventListener('touchstart', onDown, { passive: false });
+        canvas.addEventListener('touchend', onUp, { passive: false });
         
         window.addEventListener('resize', resize);
         
