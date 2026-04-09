@@ -38,62 +38,6 @@
 
 ---
 
-## 🎮 跳一跳小游戏
-
-**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
-
-> 按住蓄力，松开跳跃，看你能跳多远！
-
-- 🖱️ 电脑：按住鼠标蓄力
-- 📱 手机：按住屏幕蓄力
-- 💡 蓄力越久，跳得越远
-
-**由建国大业计划出品** 🗡️
-
----
-
-## 🎮 跳一跳小游戏
-
-**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
-
-> 按住蓄力，松开跳跃，看你能跳多远！
-
-- 🖱️ 电脑：按住鼠标蓄力
-- 📱 手机：按住屏幕蓄力
-- 💡 蓄力越久，跳得越远
-
-**由建国大业计划出品** 🗡️
-
----
-
-## 🎮 跳一跳小游戏
-
-**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
-
-> 按住蓄力，松开跳跃，看你能跳多远！
-
-- 🖱️ 电脑：按住鼠标蓄力
-- 📱 手机：按住屏幕蓄力
-- 💡 蓄力越久，跳得越远
-
-**由建国大业计划出品** 🗡️
-
----
-
-## 🎮 跳一跳小游戏
-
-**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
-
-> 按住蓄力，松开跳跃，看你能跳多远！
-
-- 🖱️ 电脑：按住鼠标蓄力
-- 📱 手机：按住屏幕蓄力
-- 💡 蓄力越久，跳得越远
-
-**由建国大业计划出品** 🗡️
-
----
-
 ## 📖 背景
 
 本项目源于真实的游戏私域运营场景。在使用网易七鱼客服系统时，运营团队面临以下痛点：
@@ -259,7 +203,8 @@ qiyu-automation/
 ├── feishu_push.py            # 飞书推送封装
 ├── hourly_push_log.py        # 推送日志记录
 ├── cleanup_locks.py          # 锁文件清理
-├── index.html                # 项目落地页
+├── game.html                 # 跳一跳小游戏 🎮
+── index.html                # 项目落地页
 ├── README.md                 # 项目说明
 └── .github/
     └── FUNDING.yml           # 赞助支持
