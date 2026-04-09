@@ -12,6 +12,7 @@
 
 ## 📋 目录
 
+- [🎮 跳一跳小游戏](#-跳一跳小游戏)
 - [背景](#背景)
 - [功能特性](#功能特性)
 - [技术架构](#技术架构)
@@ -20,6 +21,34 @@
 - [效果对比](#效果对比)
 - [实际案例](#实际案例)
 - [技术支持](#技术支持)
+
+---
+
+## 🎮 跳一跳小游戏
+
+**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
+
+> 按住蓄力，松开跳跃，看你能跳多远！
+
+- 🖱️ 电脑：按住鼠标蓄力
+- 📱 手机：按住屏幕蓄力
+- 💡 蓄力越久，跳得越远
+
+**由建国大业计划出品** 🗡️
+
+---
+
+## 🎮 跳一跳小游戏
+
+**在线试玩：** [https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html](https://rodrigoespinoza815-arch.github.io/qiyu-automation/game.html)
+
+> 按住蓄力，松开跳跃，看你能跳多远！
+
+- 🖱️ 电脑：按住鼠标蓄力
+- 📱 手机：按住屏幕蓄力
+- 💡 蓄力越久，跳得越远
+
+**由建国大业计划出品** 🗡️
 
 ---
 
