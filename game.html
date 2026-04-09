@@ -3,584 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>跳一跳 - 小游戏</title>
+    <title>跳一跳</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            overflow: hidden; 
-            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 50%, #F5F5F5 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
+        body { overflow: hidden; background: #E8F5E9; font-family: sans-serif; touch-action: none; user-select: none; }
         canvas { display: block; }
+        .ui { position: fixed; top: 0; left: 0; right: 0; text-align: center; pointer-events: none; z-index: 10; }
+        .score { font-size: 52px; font-weight: bold; color: #333; margin-top: 50px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .best { font-size: 14px; color: #888; margin-top: 5px; }
         
-        .score-display {
-            position: fixed;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 48px;
-            font-weight: bold;
-            color: #333;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 10;
-            pointer-events: none;
+        #startScreen {
+            position: fixed; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; background: linear-gradient(180deg, #667eea, #764ba2);
+            z-index: 100; transition: opacity 0.4s;
         }
-        
-        .best-score {
-            position: fixed;
-            top: 115px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 16px;
-            color: #666;
-            z-index: 10;
-            pointer-events: none;
+        #startScreen.hide { opacity: 0; pointer-events: none; }
+        #startScreen h1 { font-size: 52px; color: white; margin-bottom: 12px; }
+        #startScreen p { color: rgba(255,255,255,0.7); font-size: 16px; margin-bottom: 40px; }
+        #startBtn {
+            background: white; color: #764ba2; border: none; padding: 14px 50px;
+            font-size: 22px; font-weight: bold; border-radius: 28px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+        #startBtn:active { transform: scale(0.96); }
+        .tips { margin-top: 30px; color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.6; }
         
-        .start-screen {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            z-index: 100;
-            transition: opacity 0.5s, transform 0.5s;
+        #gameOverScreen {
+            position: fixed; inset: 0; display: none; flex-direction: column;
+            align-items: center; justify-content: center; background: rgba(0,0,0,0.5); z-index: 100;
         }
-        
-        .start-screen.hidden {
-            opacity: 0;
-            transform: scale(0.9);
-            pointer-events: none;
+        #gameOverScreen.show { display: flex; }
+        .overCard {
+            background: white; border-radius: 18px; padding: 30px 35px; text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
         }
-        
-        .game-title {
-            font-size: 56px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            margin-bottom: 15px;
+        .overCard h2 { font-size: 22px; color: #333; margin-bottom: 12px; }
+        .overScore { font-size: 52px; font-weight: bold; color: #764ba2; margin: 10px 0; }
+        .overBest { font-size: 13px; color: #888; margin-bottom: 20px; }
+        #restartBtn {
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;
+            padding: 12px 40px; font-size: 17px; font-weight: bold; border-radius: 22px; cursor: pointer;
         }
-        
-        .game-subtitle {
-            font-size: 18px;
-            color: rgba(255,255,255,0.8);
-            margin-bottom: 50px;
-        }
-        
-        .start-btn {
-            background: white;
-            color: #764ba2;
-            border: none;
-            padding: 16px 60px;
-            font-size: 24px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-        }
-        
-        .start-btn:active { transform: scale(0.95); }
-        
-        .instructions {
-            margin-top: 40px;
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            line-height: 1.8;
-        }
-        
-        .game-over-screen {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.6);
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        
-        .game-over-screen.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        
-        .game-over-card {
-            background: white;
-            border-radius: 20px;
-            padding: 35px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-width: 280px;
-            width: 85%;
-        }
-        
-        .game-over-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-        }
-        
-        .final-score {
-            font-size: 56px;
-            font-weight: bold;
-            color: #764ba2;
-            margin: 15px 0;
-        }
-        
-        .final-best {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 25px;
-        }
-        
-        .restart-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 45px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 25px;
-            cursor: pointer;
-        }
-        
-        .github-link {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.5);
-            font-size: 12px;
-            z-index: 101;
-        }
-        
-        .github-link a { color: rgba(255,255,255,0.7); text-decoration: none; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="c"></canvas>
+    <div class="ui"><div class="score" id="scoreEl">0</div><div class="best" id="bestEl"></div></div>
     
-    <div class="score-display" id="scoreDisplay">0</div>
-    <div class="best-score" id="bestScore"></div>
-    
-    <div class="start-screen" id="startScreen">
-        <div class="game-title">🎯 跳一跳</div>
-        <div class="game-subtitle">按住蓄力，松开跳跃</div>
-        <button class="start-btn" onclick="startGame()">开始游戏</button>
-        <div class="instructions">
-            🖱️ 电脑：按住鼠标蓄力<br>
-            📱 手机：按住屏幕蓄力<br>
-            💡 蓄力越久，跳得越远
-        </div>
-        <div class="github-link">
-            由 <a href="https://github.com/rodrigoespinoza815-arch/qiyu-automation" target="_blank">建国大业计划</a> 出品
-        </div>
+    <div id="startScreen">
+        <h1>🎯 跳一跳</h1>
+        <p>按住蓄力，松开跳跃</p>
+        <button id="startBtn">开始游戏</button>
+        <div class="tips">🖱️ 按住鼠标 / 📱 按住屏幕<br>蓄力越久跳得越远</div>
     </div>
     
-    <div class="game-over-screen" id="gameOverScreen">
-        <div class="game-over-card">
-            <div class="game-over-title">游戏结束 😢</div>
-            <div class="final-score" id="finalScore">0</div>
-            <div class="final-best" id="finalBest">最高纪录：0</div>
-            <button class="restart-btn" onclick="restartGame()">再来一局</button>
+    <div id="gameOverScreen">
+        <div class="overCard">
+            <h2>游戏结束</h2>
+            <div class="overScore" id="finalScore">0</div>
+            <div class="overBest" id="finalBest">最高纪录：0</div>
+            <button id="restartBtn">再来一局</button>
         </div>
     </div>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+let W, H;
+
+// Game state
+let plats = [], player, score, best = +localStorage.getItem('jb') || 0;
+let charging = false, chargeT = 0;
+let jumping = false, jumpT = 0, jumpFrom = {}, jumpTo = {};
+let camX = 0, camY = 0;
+let running = false;
+
+const MAX_CHARGE = 1800;
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#F8B500','#6C5CE7'];
+
+function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+resize();
+window.onresize = resize;
+
+function makePlat(x, y, isFirst) {
+    return {
+        x, y,
+        w: isFirst ? 65 : 40 + Math.random() * 35,
+        h: isFirst ? 20 : 15 + Math.random() * 10,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        scored: false
+    };
+}
+
+function init() {
+    plats = [];
+    const p0 = makePlat(W * 0.2, H * 0.58, true);
+    plats.push(p0);
     
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    for (let i = 0; i < 7; i++) {
+        const last = plats[plats.length - 1];
+        const dx = 65 + Math.random() * 100;
+        const dy = (Math.random() - 0.5) * 80;
+        plats.push(makePlat(last.x + dx, Math.max(H*0.28, Math.min(H*0.72, last.y + dy)), false));
+    }
+    
+    player = { x: p0.x + p0.w/2 - 14, y: p0.y - 28, w: 28, h: 28 };
+    score = 0;
+    camX = 0; camY = 0;
+    charging = false; jumping = false;
+    document.getElementById('scoreEl').textContent = '0';
+    document.getElementById('bestEl').textContent = best > 0 ? '🏆 ' + best : '';
+}
+
+function draw() {
+    ctx.clearRect(0, 0, W, H);
+    
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#87CEEB');
+    bg.addColorStop(0.6, '#E0F6FF');
+    bg.addColorStop(1, '#F0F0F0');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    
+    // Clouds
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let i = 0; i < 5; i++) {
+        const cx = ((i * 260 - camX * 0.12) % (W + 200)) - 80;
+        const cy = 35 + (i % 3) * 30;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 22, 0, Math.PI*2);
+        ctx.arc(cx+18, cy-8, 18, 0, Math.PI*2);
+        ctx.arc(cx+36, cy, 22, 0, Math.PI*2);
+        ctx.fill();
+    }
+    
+    // Platforms
+    for (const p of plats) {
+        const sx = p.x - camX, sy = p.y - camY;
+        if (sx + p.w < -40 || sx > W + 40) continue;
         
-        let W, H;
-        let platforms = [];
-        let player = { x: 0, y: 0, w: 32, h: 32 };
-        let score = 0;
-        let bestScore = parseInt(localStorage.getItem('jumpBest') || '0');
-        let isCharging = false;
-        let chargeStart = 0;
-        let chargePower = 0;
-        let isJumping = false;
-        let jumpAnim = { active: false, startX: 0, startY: 0, endX: 0, endY: 0, progress: 0, arcHeight: 0 };
-        let gameStarted = false;
-        let cameraX = 0;
-        let cameraY = 0;
-        let targetCameraX = 0;
-        let targetCameraY = 0;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.beginPath();
+        ctx.ellipse(sx + p.w/2, sy + p.h + 3, p.w*0.4, 5, 0, 0, Math.PI*2);
+        ctx.fill();
         
-        const GRAVITY = 0.6;
-        const JUMP_SPEED = 8;
-        const MAX_CHARGE = 2000;
+        // Body
+        ctx.fillStyle = p.color;
+        ctx.fillRect(sx, sy, p.w, p.h);
         
-        const colors = [
-            { top: '#FF6B6B', side: '#E85D5D' },
-            { top: '#4ECDC4', side: '#3DB8AF' },
-            { top: '#45B7D1', side: '#349DB8' },
-            { top: '#96CEB4', side: '#7DB89A' },
-            { top: '#FFEAA7', side: '#E8D595' },
-            { top: '#DDA0DD', side: '#C88FC8' },
-            { top: '#F8B500', side: '#E0A200' },
-            { top: '#6C5CE7', side: '#5A4BD1' }
-        ];
-        
-        function resize() {
-            W = canvas.width = window.innerWidth;
-            H = canvas.height = window.innerHeight;
-        }
-        
-        function generatePlatform(index) {
-            const lastPlat = platforms[platforms.length - 1];
-            const minDist = 70;
-            const maxDist = 160;
-            const distance = minDist + Math.random() * (maxDist - minDist);
-            const platW = 45 + Math.random() * 35;
-            const platH = 18 + Math.random() * 12;
+        // Top highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(sx+2, sy+1, p.w-4, p.h*0.35);
+    }
+    
+    // Player
+    const px = player.x - camX, py = player.y - camY;
+    const compress = charging ? Math.min(chargeT / MAX_CHARGE, 1) : 0;
+    const pw = player.w * (1 + compress * 0.2);
+    const ph = player.h * (1 - compress * 0.35);
+    const dx = px + player.w/2 - pw/2;
+    const dy = py + player.h - ph;
+    
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath();
+    ctx.ellipse(px + player.w/2, py + player.h + 2, pw/2, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Body
+    const g = ctx.createRadialGradient(dx+pw/2, dy+ph*0.3, 0, dx+pw/2, dy+ph*0.3, pw*0.5);
+    g.addColorStop(0, '#FFB347');
+    g.addColorStop(1, '#FF8C00');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(dx, dy, pw, ph, pw/3);
+    ctx.fill();
+    
+    // Eyes
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(dx+pw*0.35, dy+ph*0.35, pw*0.16, 0, Math.PI*2);
+    ctx.arc(dx+pw*0.65, dy+ph*0.35, pw*0.16, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(dx+pw*0.35, dy+ph*0.35, pw*0.08, 0, Math.PI*2);
+    ctx.arc(dx+pw*0.65, dy+ph*0.35, pw*0.08, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Charge bar
+    if (charging) {
+        const pct = Math.min(chargeT / MAX_CHARGE, 1);
+        const bw = 45, bh = 5;
+        const bx = W/2 - bw/2, by = H - 55;
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(bx, by, bw, bh);
+        const bg2 = ctx.createLinearGradient(bx, 0, bx+bw, 0);
+        bg2.addColorStop(0, '#4ECDC4');
+        bg2.addColorStop(0.6, '#FFD93D');
+        bg2.addColorStop(1, '#FF6B6B');
+        ctx.fillStyle = bg2;
+        ctx.fillRect(bx, by, bw * pct, bh);
+    }
+}
+
+function update() {
+    if (!running) return;
+    
+    if (charging) chargeT += 16;
+    
+    if (jumping) {
+        jumpT += 0.04;
+        if (jumpT >= 1) {
+            jumpT = 1;
+            jumping = false;
             
-            let x = lastPlat.x + distance;
-            let y = lastPlat.y + (Math.random() - 0.5) * 100;
-            y = Math.max(H * 0.3, Math.min(H * 0.75, y));
-            
-            return {
-                x: x,
-                y: y,
-                w: platW,
-                h: platH,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                scored: false
-            };
-        }
-        
-        function initGame() {
-            platforms = [];
-            
-            const firstPlat = {
-                x: W * 0.2,
-                y: H * 0.55,
-                w: 70,
-                h: 22,
-                color: colors[0],
-                scored: false
-            };
-            platforms.push(firstPlat);
-            
-            player.x = firstPlat.x + firstPlat.w / 2 - player.w / 2;
-            player.y = firstPlat.y - player.h;
-            
-            score = 0;
-            cameraX = 0;
-            cameraY = 0;
-            targetCameraX = 0;
-            targetCameraY = 0;
-            isCharging = false;
-            chargePower = 0;
-            isJumping = false;
-            jumpAnim = { active: false };
-            
-            document.getElementById('scoreDisplay').textContent = '0';
-            document.getElementById('bestScore').textContent = bestScore > 0 ? `🏆 ${bestScore}` : '';
-            
-            for (let i = 1; i < 8; i++) {
-                platforms.push(generatePlatform(i));
-            }
-        }
-        
-        function drawPlatform(plat) {
-            const sx = plat.x - cameraX;
-            const sy = plat.y - cameraY;
-            
-            if (sx + plat.w < -50 || sx > W + 50) return;
-            
-            // Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
-            ctx.beginPath();
-            ctx.ellipse(sx + plat.w/2, sy + plat.h + 4, plat.w * 0.45, 6, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Platform body
-            ctx.fillStyle = plat.color.side;
-            ctx.fillRect(sx, sy, plat.w, plat.h);
-            
-            // Platform top
-            ctx.fillStyle = plat.color.top;
-            ctx.fillRect(sx, sy, plat.w, plat.h * 0.55);
-            
-            // Highlight
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
-            ctx.fillRect(sx + 3, sy + 2, plat.w - 6, plat.h * 0.2);
-        }
-        
-        function drawPlayer(sx, sy, compression) {
-            const w = player.w * (1 + compression * 0.15);
-            const h = player.h * (1 - compression * 0.35);
-            const dx = sx + player.w/2 - w/2;
-            const dy = sy + player.h - h;
-            
-            // Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.12)';
-            ctx.beginPath();
-            ctx.ellipse(sx + player.w/2, sy + player.h + 3, w/2, 4, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Body
-            const grad = ctx.createRadialGradient(dx + w/2, dy + h*0.35, 0, dx + w/2, dy + h*0.35, w*0.6);
-            grad.addColorStop(0, '#FFB347');
-            grad.addColorStop(1, '#FF8C00');
-            ctx.fillStyle = grad;
-            
-            ctx.beginPath();
-            ctx.roundRect(dx, dy, w, h, w/3);
-            ctx.fill();
-            
-            // Eyes
-            ctx.fillStyle = 'white';
-            const eyeR = w * 0.18;
-            ctx.beginPath();
-            ctx.arc(dx + w*0.35, dy + h*0.35, eyeR, 0, Math.PI*2);
-            ctx.arc(dx + w*0.65, dy + h*0.35, eyeR, 0, Math.PI*2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#333';
-            ctx.beginPath();
-            ctx.arc(dx + w*0.35, dy + h*0.35, eyeR*0.5, 0, Math.PI*2);
-            ctx.arc(dx + w*0.65, dy + h*0.35, eyeR*0.5, 0, Math.PI*2);
-            ctx.fill();
-        }
-        
-        function drawChargeBar() {
-            if (!isCharging) return;
-            
-            const power = Math.min(chargePower / MAX_CHARGE, 1);
-            const barW = 50;
-            const barH = 5;
-            const barX = W/2 - barW/2;
-            const barY = H - 60;
-            
-            ctx.fillStyle = 'rgba(0,0,0,0.25)';
-            ctx.fillRect(barX, barY, barW, barH);
-            
-            const grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-            grad.addColorStop(0, '#4ECDC4');
-            grad.addColorStop(0.5, '#FFD93D');
-            grad.addColorStop(1, '#FF6B6B');
-            
-            ctx.fillStyle = grad;
-            ctx.fillRect(barX, barY, barW * power, barH);
-        }
-        
-        function drawClouds() {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            const offset = cameraX * 0.15;
-            
-            for (let i = 0; i < 6; i++) {
-                const cx = ((i * 280 - offset * 0.5) % (W + 200)) - 80;
-                const cy = 40 + (i % 3) * 35;
-                const r = 25 + (i % 2) * 8;
-                
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI*2);
-                ctx.arc(cx + r*0.8, cy - r*0.3, r*0.8, 0, Math.PI*2);
-                ctx.arc(cx + r*1.5, cy, r*0.9, 0, Math.PI*2);
-                ctx.fill();
-            }
-        }
-        
-        function update() {
-            if (!gameStarted) return;
-            
-            if (isCharging) {
-                chargePower = Math.min(Date.now() - chargeStart, MAX_CHARGE);
-            }
-            
-            if (jumpAnim.active) {
-                jumpAnim.progress += 0.035;
-                
-                if (jumpAnim.progress >= 1) {
-                    jumpAnim.progress = 1;
-                    jumpAnim.active = false;
-                    
-                    // Check landing
-                    const landingX = jumpAnim.endX;
-                    const landingY = jumpAnim.endY;
-                    let landed = false;
-                    
-                    for (let plat of platforms) {
-                        if (landingX >= plat.x && landingX <= plat.x + plat.w &&
-                            landingY >= plat.y - 5 && landingY <= plat.y + 10) {
-                            player.x = landingX - player.w/2;
-                            player.y = plat.y - player.h;
-                            landed = true;
-                            
-                            if (!plat.scored) {
-                                plat.scored = true;
-                                score++;
-                                document.getElementById('scoreDisplay').textContent = score;
-                                if (score > bestScore) {
-                                    bestScore = score;
-                                    localStorage.setItem('jumpBest', bestScore);
-                                }
-                            }
-                            
-                            // Add new platform
-                            platforms.push(generatePlatform());
-                            while (platforms.length > 12) platforms.shift();
-                            break;
-                        }
+            // Check landing
+            const lx = jumpTo.x, ly = jumpTo.y;
+            let landed = false;
+            for (const p of plats) {
+                if (lx >= p.x && lx <= p.x + p.w && ly >= p.y - 8 && ly <= p.y + p.h) {
+                    player.x = lx - player.w/2;
+                    player.y = p.y - player.h;
+                    landed = true;
+                    if (!p.scored) {
+                        p.scored = true;
+                        score++;
+                        document.getElementById('scoreEl').textContent = score;
+                        if (score > best) { best = score; localStorage.setItem('jb', best); }
                     }
-                    
-                    if (!landed) {
-                        // Fell off
-                        setTimeout(() => gameOver(), 300);
-                    }
-                    
-                    isJumping = false;
-                } else {
-                    // Parabolic arc
-                    const t = jumpAnim.progress;
-                    player.x = jumpAnim.startX + (jumpAnim.endX - jumpAnim.startX) * t;
-                    const arcY = jumpAnim.arcHeight * Math.sin(t * Math.PI);
-                    player.y = jumpAnim.startY + (jumpAnim.endY - jumpAnim.startY) * t - arcY;
+                    // Add new platform
+                    const last = plats[plats.length-1];
+                    const dx = 65 + Math.random() * 100;
+                    const dy = (Math.random()-0.5)*80;
+                    plats.push(makePlat(last.x+dx, Math.max(H*0.28, Math.min(H*0.72, last.y+dy)), false));
+                    while (plats.length > 12) plats.shift();
+                    break;
                 }
             }
-            
-            // Smooth camera follow
-            targetCameraX = player.x - W * 0.3;
-            targetCameraY = Math.min(0, player.y - H * 0.5);
-            cameraX += (targetCameraX - cameraX) * 0.08;
-            cameraY += (targetCameraY - cameraY) * 0.08;
-        }
-        
-        function startJump() {
-            if (isJumping || !isCharging) return;
-            
-            const power = Math.min(chargePower / MAX_CHARGE, 1);
-            const jumpDist = power * 200 + 30;
-            
-            // Find target platform
-            let targetPlat = null;
-            let bestDist = Infinity;
-            
-            for (let plat of platforms) {
-                if (plat.x > player.x) {
-                    const dist = Math.abs((plat.x + plat.w/2) - (player.x + player.w/2 + jumpDist));
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        targetPlat = plat;
-                    }
-                }
+            if (!landed) {
+                player.y += 150;
+                setTimeout(() => endGame(), 200);
             }
-            
-            if (!targetPlat) {
-                // Jump into void
-                jumpAnim = {
-                    active: true,
-                    startX: player.x + player.w/2,
-                    startY: player.y,
-                    endX: player.x + player.w/2 + jumpDist,
-                    endY: player.y + 200,
-                    progress: 0,
-                    arcHeight: 80
-                };
-                isJumping = true;
-                isCharging = false;
-                chargePower = 0;
-                return;
-            }
-            
-            const targetX = targetPlat.x + targetPlat.w / 2;
-            const targetY = targetPlat.y;
-            
-            jumpAnim = {
-                active: true,
-                startX: player.x + player.w/2,
-                startY: player.y,
-                endX: targetX,
-                endY: targetY,
-                progress: 0,
-                arcHeight: 60 + Math.abs(targetX - (player.x + player.w/2)) * 0.3
-            };
-            
-            isJumping = true;
-            isCharging = false;
-            chargePower = 0;
+        } else {
+            // Parabolic jump
+            const t = jumpT;
+            player.x = jumpFrom.x + (jumpTo.x - jumpFrom.x) * t;
+            const arc = 70 * Math.sin(t * Math.PI);
+            player.y = jumpFrom.y + (jumpTo.y - jumpFrom.y) * t - arc;
         }
-        
-        function gameOver() {
-            gameStarted = false;
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('finalBest').textContent = `最高纪录：${bestScore}`;
-            document.getElementById('gameOverScreen').classList.add('show');
+    }
+    
+    // Camera
+    const tcx = player.x - W * 0.3;
+    const tcy = Math.min(0, player.y - H * 0.55);
+    camX += (tcx - camX) * 0.08;
+    camY += (tcy - camY) * 0.08;
+}
+
+function doJump() {
+    if (jumping || !charging) return;
+    const power = Math.min(chargeT / MAX_CHARGE, 1);
+    const dist = power * 180 + 25;
+    
+    // Find nearest platform ahead
+    let target = null, bestD = Infinity;
+    for (const p of plats) {
+        if (p.x > player.x) {
+            const d = Math.abs(p.x + p.w/2 - (player.x + player.w/2 + dist));
+            if (d < bestD) { bestD = d; target = p; }
         }
-        
-        function render() {
-            ctx.clearRect(0, 0, W, H);
-            
-            drawClouds();
-            
-            platforms.forEach(drawPlatform);
-            
-            const sx = player.x - cameraX;
-            const sy = player.y - cameraY;
-            const compression = isCharging ? Math.min(chargePower / MAX_CHARGE, 1) : 0;
-            drawPlayer(sx, sy, compression);
-            
-            drawChargeBar();
-        }
-        
-        function gameLoop() {
-            update();
-            render();
-            requestAnimationFrame(gameLoop);
-        }
-        
-        function startGame() {
-            resize();
-            initGame();
-            gameStarted = true;
-            document.getElementById('startScreen').classList.add('hidden');
-            document.getElementById('gameOverScreen').classList.remove('show');
-        }
-        
-        function restartGame() {
-            initGame();
-            gameStarted = true;
-            document.getElementById('gameOverScreen').classList.remove('show');
-        }
-        
-        // Input handlers
-        function onDown(e) {
-            if (e) e.preventDefault();
-            if (gameStarted && !isJumping) {
-                isCharging = true;
-                chargeStart = Date.now();
-                chargePower = 0;
-            }
-        }
-        
-        function onUp(e) {
-            if (e) e.preventDefault();
-            if (gameStarted && isCharging) {
-                startJump();
-            }
-        }
-        
-        canvas.addEventListener('mousedown', onDown);
-        canvas.addEventListener('mouseup', onUp);
-        canvas.addEventListener('touchstart', onDown, { passive: false });
-        canvas.addEventListener('touchend', onUp, { passive: false });
-        
-        window.addEventListener('resize', resize);
-        
-        resize();
-        initGame();
-        gameLoop();
-    </script>
+    }
+    
+    if (!target) {
+        jumpTo = { x: player.x + player.w/2 + dist, y: player.y + 150 };
+    } else {
+        jumpTo = { x: target.x + target.w/2, y: target.y };
+    }
+    jumpFrom = { x: player.x + player.w/2, y: player.y };
+    jumpT = 0;
+    jumping = true;
+    charging = false;
+    chargeT = 0;
+}
+
+function endGame() {
+    running = false;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalBest').textContent = '最高纪录：' + best;
+    document.getElementById('gameOverScreen').classList.add('show');
+}
+
+function startGame() {
+    init();
+    running = true;
+    document.getElementById('startScreen').classList.add('hide');
+    document.getElementById('gameOverScreen').classList.remove('show');
+}
+
+function restart() {
+    init();
+    running = true;
+    document.getElementById('gameOverScreen').classList.remove('show');
+}
+
+// Input
+function down() { if (running && !jumping) { charging = true; chargeT = 0; } }
+function up() { if (running && charging) doJump(); }
+
+c.onmousedown = down; c.onmouseup = up;
+c.ontouchstart = (e) => { e.preventDefault(); down(); };
+c.ontouchend = (e) => { e.preventDefault(); up(); };
+
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('restartBtn').onclick = restart;
+
+// Loop
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+init();
+draw();
+loop();
+</script>
 </body>
 </html>
