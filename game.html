@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>跳一跳 - 小游戏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 50%, #F5F5F5 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; }
+        
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 10;
+            text-align: center;
+        }
+        
+        .score-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 60px;
+        }
+        
+        .best-score {
+            font-size: 16px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .start-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            z-index: 100;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        
+        .start-screen.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+        }
+        
+        .game-title {
+            font-size: 64px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 60px;
+        }
+        
+        .start-btn {
+            background: white;
+            color: #764ba2;
+            border: none;
+            padding: 16px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        .instructions {
+            margin-top: 40px;
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .game-over-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .game-over-screen.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .game-over-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 300px;
+            width: 90%;
+        }
+        
+        .game-over-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .final-score {
+            font-size: 64px;
+            font-weight: bold;
+            color: #764ba2;
+            margin: 20px 0;
+        }
+        
+        .final-best {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .restart-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .github-link {
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .github-link a {
+            color: #764ba2;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-overlay">
+        <div class="score-display" id="scoreDisplay">0</div>
+        <div class="best-score" id="bestScore"></div>
+    </div>
+    
+    <div class="start-screen" id="startScreen">
+        <div class="game-title">🎯 跳一跳</div>
+        <div class="game-subtitle">按住蓄力，松开跳跃</div>
+        <button class="start-btn" onclick="startGame()">开始游戏</button>
+        <div class="instructions">
+            🖱️ 电脑：按住鼠标蓄力<br>
+            📱 手机：按住屏幕蓄力<br>
+            💡 蓄力越久，跳得越远
+        </div>
+        <div class="github-link">
+            由 <a href="https://github.com/rodrigoespinoza815-arch/qiyu-automation" target="_blank">建国大业计划</a> 出品
+        </div>
+    </div>
+    
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-card">
+            <div class="game-over-title">游戏结束 😢</div>
+            <div class="final-score" id="finalScore">0</div>
+            <div class="final-best" id="finalBest">最高纪录：0</div>
+            <button class="restart-btn" onclick="restartGame()">再来一局</button>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let platforms = [];
+        let player = { x: 0, y: 0, width: 30, height: 30 };
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('jumpBest') || '0');
+        let isCharging = false;
+        let chargePower = 0;
+        let isJumping = false;
+        let gameStarted = false;
+        let cameraX = 0;
+        let gameSpeed = 1;
+        
+        const colors = [
+            { top: '#FF6B6B', side: '#E85D5D' },
+            { top: '#4ECDC4', side: '#3DB8AF' },
+            { top: '#45B7D1', side: '#349DB8' },
+            { top: '#96CEB4', side: '#7DB89A' },
+            { top: '#FFEAA7', side: '#E8D595' },
+            { top: '#DDA0DD', side: '#C88FC8' },
+            { top: '#98D8C8', side: '#7FC2B2' },
+            { top: '#F7DC6F', side: '#E0C556' }
+        ];
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        
+        function generatePlatform(index) {
+            const lastPlat = platforms.length > 0 ? platforms[platforms.length - 1] : { x: width * 0.3, y: 0 };
+            
+            const distance = 80 + Math.random() * 120 * gameSpeed;
+            const width_plat = 50 + Math.random() * 40;
+            const height_plat = 20 + Math.random() * 15;
+            const x = lastPlat.x + distance;
+            const baseY = height * 0.55;
+            const y = baseY + (Math.random() - 0.5) * 150;
+            
+            return {
+                x: x,
+                y: y,
+                width: width_plat,
+                height: height_plat,
+                color: colors[Math.floor(Math.random() * colors.length)]
+            };
+        }
+        
+        function initGame() {
+            platforms = [];
+            
+            const firstPlat = {
+                x: width * 0.25,
+                y: height * 0.55,
+                width: 80,
+                height: 25,
+                color: colors[0]
+            };
+            platforms.push(firstPlat);
+            
+            player.x = firstPlat.x + firstPlat.width / 2 - player.width / 2;
+            player.y = firstPlat.y - player.height;
+            
+            score = 0;
+            cameraX = 0;
+            gameSpeed = 1;
+            isCharging = false;
+            chargePower = 0;
+            isJumping = false;
+            
+            document.getElementById('scoreDisplay').textContent = '0';
+            document.getElementById('bestScore').textContent = bestScore > 0 ? `🏆 最高纪录：${bestScore}` : '';
+            
+            for (let i = 1; i < 10; i++) {
+                platforms.push(generatePlatform(i));
+            }
+        }
+        
+        function drawPlatform(plat) {
+            const x = plat.x - cameraX;
+            
+            if (x + plat.width < -50 || x > width + 50) return;
+            
+            // 阴影
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.beginPath();
+            ctx.ellipse(x + plat.width/2, plat.y + plat.height + 5, plat.width/2, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 平台主体
+            ctx.fillStyle = plat.color.side;
+            ctx.fillRect(x, plat.y, plat.width, plat.height);
+            
+            // 平台顶面
+            ctx.fillStyle = plat.color.top;
+            ctx.fillRect(x, plat.y, plat.width, plat.height * 0.6);
+            
+            // 高光
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(x, plat.y, plat.width, plat.height * 0.2);
+        }
+        
+        function drawPlayer() {
+            const x = player.x - cameraX;
+            
+            // 阴影
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(x + player.width/2, player.y + player.height + 3, player.width/2, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 蓄力压缩效果
+            let scaleY = 1;
+            let scaleX = 1;
+            if (isCharging) {
+                const compression = chargePower / 100;
+                scaleY = 1 - compression * 0.4;
+                scaleX = 1 + compression * 0.2;
+            }
+            
+            const w = player.width * scaleX;
+            const h = player.height * scaleY;
+            const dx = x + player.width/2 - w/2;
+            const dy = player.y + player.height - h;
+            
+            // 身体
+            const gradient = ctx.createRadialGradient(dx + w/2, dy + h/3, 0, dx + w/2, dy + h/3, w);
+            gradient.addColorStop(0, '#FFB347');
+            gradient.addColorStop(1, '#FF8C00');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(dx, dy, w, h, w/3);
+            ctx.fill();
+            
+            // 眼睛
+            ctx.fillStyle = 'white';
+            const eyeSize = w * 0.2;
+            ctx.beginPath();
+            ctx.arc(dx + w * 0.35, dy + h * 0.35, eyeSize, 0, Math.PI * 2);
+            ctx.arc(dx + w * 0.65, dy + h * 0.35, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(dx + w * 0.35, dy + h * 0.35, eyeSize * 0.5, 0, Math.PI * 2);
+            ctx.arc(dx + w * 0.65, dy + h * 0.35, eyeSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 蓄力条
+            if (isCharging) {
+                const barWidth = 60;
+                const barHeight = 6;
+                const barX = width / 2 - barWidth / 2;
+                const barY = height - 80;
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                
+                const power = chargePower / 100;
+                const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+                gradient.addColorStop(0, '#4ECDC4');
+                gradient.addColorStop(0.5, '#FFD93D');
+                gradient.addColorStop(1, '#FF6B6B');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(barX, barY, barWidth * power, barHeight);
+            }
+        }
+        
+        function drawBackground() {
+            // 云朵
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            const cloudOffset = cameraX * 0.2;
+            
+            for (let i = 0; i < 5; i++) {
+                const cx = ((i * 300 - cloudOffset) % (width + 200)) - 100;
+                const cy = 50 + i * 30;
+                
+                ctx.beginPath();
+                ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+                ctx.arc(cx + 25, cy - 10, 25, 0, Math.PI * 2);
+                ctx.arc(cx + 50, cy, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function update() {
+            if (!gameStarted || isJumping) return;
+            
+            if (isCharging) {
+                chargePower = Math.min(chargePower + 2, 100);
+            }
+        }
+        
+        function jump() {
+            if (isJumping || !isCharging) return;
+            
+            isJumping = true;
+            const power = chargePower / 100;
+            
+            const targetPlat = platforms.find(p => p.x > player.x && p.x < player.x + 300);
+            
+            if (!targetPlat) {
+                isJumping = false;
+                gameOver();
+                return;
+            }
+            
+            const distance = power * 250 * gameSpeed;
+            const targetX = player.x + distance;
+            
+            // 找到最近的着陆平台
+            let landed = false;
+            for (let plat of platforms) {
+                if (Math.abs(targetX - (plat.x + plat.width / 2)) < plat.width / 2 + player.width / 2) {
+                    player.x = targetX;
+                    player.y = plat.y - player.height;
+                    landed = true;
+                    
+                    score++;
+                    document.getElementById('scoreDisplay').textContent = score;
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        localStorage.setItem('jumpBest', bestScore);
+                    }
+                    
+                    // 难度递增
+                    gameSpeed = 1 + score * 0.02;
+                    
+                    // 生成新平台
+                    platforms.push(generatePlatform());
+                    
+                    // 移除屏幕外的平台
+                    while (platforms.length > 15) {
+                        platforms.shift();
+                    }
+                    
+                    break;
+                }
+            }
+            
+            if (!landed) {
+                player.x = targetX;
+                player.y += 200;
+                setTimeout(() => gameOver(), 500);
+                return;
+            }
+            
+            chargePower = 0;
+            isCharging = false;
+            
+            setTimeout(() => {
+                isJumping = false;
+            }, 100);
+        }
+        
+        function gameOver() {
+            gameStarted = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalBest').textContent = `最高纪录：${bestScore}`;
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+        
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // 相机跟随
+            if (gameStarted) {
+                const targetCameraX = player.x - width * 0.3;
+                cameraX += (targetCameraX - cameraX) * 0.1;
+            }
+            
+            drawBackground();
+            
+            platforms.forEach(drawPlatform);
+            drawPlayer();
+        }
+        
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function startGame() {
+            resize();
+            initGame();
+            gameStarted = true;
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('show');
+        }
+        
+        function restartGame() {
+            initGame();
+            gameStarted = true;
+            document.getElementById('gameOverScreen').classList.remove('show');
+        }
+        
+        // 事件监听
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameStarted && !isJumping) {
+                isCharging = true;
+                chargePower = 0;
+            }
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (gameStarted && isCharging) {
+                jump();
+            }
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameStarted && !isJumping) {
+                isCharging = true;
+                chargePower = 0;
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (gameStarted && isCharging) {
+                jump();
+            }
+        }, { passive: false });
+        
+        window.addEventListener('resize', resize);
+        
+        resize();
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
